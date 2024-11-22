@@ -1,4 +1,4 @@
-package internal
+package controllers
 
 import (
 	"fmt"
@@ -9,34 +9,28 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-var (
-	todoList    []types.Todo
-	todoService *services.TodoService
-)
-
-func SetupRoutes(g *gin.Engine) {
-	todoList = []types.Todo{}
-	todoService = services.New(todoList)
-
-	g.GET("/todos", getTodosController)
-	g.GET("/todos/:id", getTodoController)
-	g.POST("/todos", createTodoController)
-	g.PATCH("/todos/:id/toggle-completed", toggleTodoCompletedController)
-	g.DELETE("/todos/:id", deleteTodoController)
+type TodoController struct {
+	tds *services.TodoService
 }
 
-func getTodosController(c *gin.Context) {
-	todos := todoService.ListTodos()
+func NewTodoController(tds *services.TodoService) *TodoController {
+	return &TodoController{
+		tds: tds,
+	}
+}
+
+func (ctr *TodoController) GetTodosController(c *gin.Context) {
+	todos := ctr.tds.ListTodos()
 
 	c.JSON(http.StatusOK, todos)
 }
 
-func getTodoController(c *gin.Context) {
+func (ctr *TodoController) GetTodoController(c *gin.Context) {
 	id := c.Param("id")
 
 	// TODO add validation
 
-	todo, err := todoService.GetTodo(id)
+	todo, err := ctr.tds.GetTodo(id)
 
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{
@@ -48,7 +42,7 @@ func getTodoController(c *gin.Context) {
 	c.JSON(http.StatusOK, todo)
 }
 
-func createTodoController(c *gin.Context) {
+func (ctr *TodoController) CreateTodoController(c *gin.Context) {
 	var body types.CreateTodoBody
 
 	if err := c.BindJSON(&body); err != nil {
@@ -61,17 +55,17 @@ func createTodoController(c *gin.Context) {
 
 	// TODO add validation
 
-	todo := todoService.CreateTodo(body.Content)
+	todo := ctr.tds.CreateTodo(body.Content)
 
 	c.JSON(http.StatusCreated, todo)
 }
 
-func toggleTodoCompletedController(c *gin.Context) {
+func (ctr *TodoController) ToggleTodoCompletedController(c *gin.Context) {
 	id := c.Param("id")
 
 	// TODO add validation
 
-	todo, err := todoService.ToggleTodoCompleted(id)
+	todo, err := ctr.tds.ToggleTodoCompleted(id)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"message": err.Error(),
@@ -82,12 +76,12 @@ func toggleTodoCompletedController(c *gin.Context) {
 	c.JSON(http.StatusOK, todo)
 }
 
-func deleteTodoController(c *gin.Context) {
+func (ctr *TodoController) DeleteTodoController(c *gin.Context) {
 	id := c.Param("id")
 
 	// TODO add validation
 
-	if err := todoService.DeleteTodo(id); err != nil {
+	if err := ctr.tds.DeleteTodo(id); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"message": err.Error(),
 		})

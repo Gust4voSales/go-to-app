@@ -11,7 +11,7 @@ type TodoService struct {
 	todoList []types.Todo
 }
 
-func New(tl []types.Todo) *TodoService {
+func NewTodoService(tl []types.Todo) *TodoService {
 	return &TodoService{
 		todoList: tl,
 	}
