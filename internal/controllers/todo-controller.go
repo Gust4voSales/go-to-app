@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/Gust4voSales/go-todo-app/internal/errors"
 	"github.com/Gust4voSales/go-todo-app/internal/services"
 	"github.com/Gust4voSales/go-todo-app/internal/types"
 	"github.com/gin-gonic/gin"
@@ -20,7 +21,13 @@ func NewTodoController(tds *services.TodoService) *TodoController {
 }
 
 func (ctr *TodoController) GetTodosController(c *gin.Context) {
-	todos := ctr.tds.ListTodos()
+	todos, err := ctr.tds.ListTodos()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"message": errors.ErrorInternalServerError.Error(),
+		})
+		return
+	}
 
 	c.JSON(http.StatusOK, todos)
 }
@@ -33,9 +40,15 @@ func (ctr *TodoController) GetTodoController(c *gin.Context) {
 	todo, err := ctr.tds.GetTodo(id)
 
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"message": err.Error(),
-		})
+		if err == errors.ErrorEntityNotFound {
+			c.JSON(http.StatusNotFound, gin.H{
+				"message": fmt.Sprintf("TODO with id %q not found", id),
+			})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"message": errors.ErrorInternalServerError.Error(),
+			})
+		}
 		return
 	}
 
@@ -55,7 +68,13 @@ func (ctr *TodoController) CreateTodoController(c *gin.Context) {
 
 	// TODO add validation
 
-	todo := ctr.tds.CreateTodo(body.Content)
+	todo, err := ctr.tds.CreateTodo(body.Content)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"message": "Internal server error",
+		})
+		return
+	}
 
 	c.JSON(http.StatusCreated, todo)
 }
@@ -67,9 +86,15 @@ func (ctr *TodoController) ToggleTodoCompletedController(c *gin.Context) {
 
 	todo, err := ctr.tds.ToggleTodoCompleted(id)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"message": err.Error(),
-		})
+		if err == errors.ErrorEntityNotFound {
+			c.JSON(http.StatusNotFound, gin.H{
+				"message": fmt.Sprintf("TODO with id %q not found", id),
+			})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"message": errors.ErrorInternalServerError.Error(),
+			})
+		}
 		return
 	}
 
@@ -82,10 +107,11 @@ func (ctr *TodoController) DeleteTodoController(c *gin.Context) {
 	// TODO add validation
 
 	if err := ctr.tds.DeleteTodo(id); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"message": err.Error(),
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"message": errors.ErrorInternalServerError.Error(),
 		})
 		return
 	}
+
 	c.Status(http.StatusOK)
 }
